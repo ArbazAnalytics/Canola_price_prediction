@@ -1,7 +1,3 @@
-Got it! Since you only performed **scaling** (multiplying inflation by 100) and not normalization, I’ll update the README and explanation accordingly. Here's the revised version:
-
----
-
 # Canola Price Prediction Dashboard - README
 
 This repository contains a **Canola Price Prediction Dashboard** created using **Sigma Computing**. The dashboard provides insights into canola price trends, production data, and the relationship between canola prices and inflation. It also includes a comparison of **actual** and **predicted** canola prices using the **XGBoost** machine learning model.
