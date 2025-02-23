@@ -1,0 +1,176 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+
+# Load the dataset
+df = pd.read_csv("D:\\Projects\\Pricing Analyst Project\\crop_price_prediction\\data from code\\canola_price_prediction.csv")
+
+# Check for missing values
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+# Correlation matrix to understand feature relationships
+plt.figure(figsize=(10, 6))
+sns.heatmap(df.corr(), annot=True, cmap='coolwarm', fmt='.2f')
+plt.title('Feature Correlation Heatmap')
+plt.show()
+
+# Define features (X) and target (y)
+X = df.drop(columns=["Mean Price"])  # Features (all columns except "Mean Price")
+y = df["Mean Price"]  # Target variable
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+
+# Scale the features (only for Linear Regression)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)  # Fit and transform training data
+X_test_scaled = scaler.transform(X_test)  # Transform test data
+
+# Train and evaluate Linear Regression model
+linear_model = LinearRegression()
+linear_model.fit(X_train_scaled, y_train)
+y_pred_linear = linear_model.predict(X_test_scaled)
+
+# Evaluate Linear Regression model
+mae_linear = mean_absolute_error(y_test, y_pred_linear)
+mse_linear = mean_squared_error(y_test, y_pred_linear)
+rmse_linear = np.sqrt(mse_linear)
+r2_linear = r2_score(y_test, y_pred_linear)
+
+print("\nLinear Regression Results:")
+print(f"Mean Absolute Error (MAE): {mae_linear:.2f}")
+print(f"Mean Squared Error (MSE): {mse_linear:.2f}")
+print(f"Root Mean Squared Error (RMSE): {rmse_linear:.2f}")
+print(f"R² Score: {r2_linear:.2f}")
+
+# Train and evaluate Random Forest model
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+y_pred_rf = rf_model.predict(X_test)
+
+# Evaluate Random Forest model
+mae_rf = mean_absolute_error(y_test, y_pred_rf)
+mse_rf = mean_squared_error(y_test, y_pred_rf)
+rmse_rf = np.sqrt(mse_rf)
+r2_rf = r2_score(y_test, y_pred_rf)
+
+print("\nRandom Forest Results:")
+print(f"Mean Absolute Error (MAE): {mae_rf:.2f}")
+print(f"Mean Squared Error (MSE): {mse_rf:.2f}")
+print(f"Root Mean Squared Error (RMSE): {rmse_rf:.2f}")
+print(f"R² Score: {r2_rf:.2f}")
+
+# Hyperparameter tuning for Random Forest using GridSearchCV
+rf_param_grid = {
+    'n_estimators': [50, 100, 200],  # Number of trees
+    'max_depth': [None, 5, 10, 20],  # Maximum depth of each tree
+    'min_samples_split': [2, 5, 10],  # Minimum samples required to split a node
+    'min_samples_leaf': [1, 2, 4]  # Minimum samples required at a leaf node
+}
+
+rf_grid_search = GridSearchCV(
+    estimator=RandomForestRegressor(random_state=42),
+    param_grid=rf_param_grid,
+    cv=5,
+    scoring='neg_mean_absolute_error',
+    n_jobs=-1,
+    verbose=2
+)
+rf_grid_search.fit(X_train, y_train)
+
+# Train the best Random Forest model
+best_rf = rf_grid_search.best_estimator_
+y_pred_best_rf = best_rf.predict(X_test)
+
+# Evaluate the best Random Forest model
+mae_best_rf = mean_absolute_error(y_test, y_pred_best_rf)
+mse_best_rf = mean_squared_error(y_test, y_pred_best_rf)
+rmse_best_rf = np.sqrt(mse_best_rf)
+r2_best_rf = r2_score(y_test, y_pred_best_rf)
+
+print("\nBest Random Forest Results:")
+print(f"Mean Absolute Error (MAE): {mae_best_rf:.2f}")
+print(f"Mean Squared Error (MSE): {mse_best_rf:.2f}")
+print(f"Root Mean Squared Error (RMSE): {rmse_best_rf:.2f}")
+print(f"R² Score: {r2_best_rf:.2f}")
+
+# Hyperparameter tuning for XGBoost using RandomizedSearchCV
+xgb_param_grid = {
+    'n_estimators': [100, 200, 300],  # Number of boosting rounds
+    'max_depth': [3, 5, 7, 10],  # Maximum depth of each tree
+    'learning_rate': [0.01, 0.05, 0.1, 0.2],  # Step size at each iteration
+    'subsample': [0.6, 0.8, 1.0],  # Fraction of samples used for training
+    'colsample_bytree': [0.6, 0.8, 1.0],  # Fraction of features used for training
+    'reg_lambda': [0.1, 1, 10],  # L2 regularization
+    'reg_alpha': [0.1, 1, 10]  # L1 regularization
+}
+
+xgb_random_search = RandomizedSearchCV(
+    estimator=XGBRegressor(objective='reg:squarederror', random_state=42),
+    param_distributions=xgb_param_grid,
+    n_iter=50,
+    cv=5,
+    scoring='neg_mean_absolute_error',
+    n_jobs=-1,
+    verbose=2,
+    random_state=42
+)
+xgb_random_search.fit(X_train, y_train)
+
+# Train the best XGBoost model
+best_xgb = xgb_random_search.best_estimator_
+best_xgb.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=True)
+y_pred_xgb = best_xgb.predict(X_test)
+
+# Evaluate the best XGBoost model
+mae_xgb = mean_absolute_error(y_test, y_pred_xgb)
+mse_xgb = mean_squared_error(y_test, y_pred_xgb)
+rmse_xgb = np.sqrt(mse_xgb)
+r2_xgb = r2_score(y_test, y_pred_xgb)
+
+print("\nBest XGBoost Results:")
+print(f"Mean Absolute Error (MAE): {mae_xgb:.2f}")
+print(f"Mean Squared Error (MSE): {mse_xgb:.2f}")
+print(f"Root Mean Squared Error (RMSE): {rmse_xgb:.2f}")
+print(f"R² Score: {r2_xgb:.2f}")
+
+# Feature importance for XGBoost
+plt.figure(figsize=(10, 6))
+sns.barplot(x=best_xgb.feature_importances_, y=X_train.columns)
+plt.title("Feature Importance (XGBoost)")
+plt.show()
+
+# Drop the 'production' column and retrain XGBoost
+X_train_dropped = X_train.drop('production', axis=1, errors='ignore')
+X_test_dropped = X_test.drop('production', axis=1, errors='ignore')
+
+best_xgb.fit(X_train_dropped, y_train)
+y_pred_dropped = best_xgb.predict(X_test_dropped)
+
+# Evaluate the model without 'production'
+mae_dropped = mean_absolute_error(y_test, y_pred_dropped)
+mse_dropped = mean_squared_error(y_test, y_pred_dropped)
+rmse_dropped = np.sqrt(mse_dropped)
+r2_dropped = r2_score(y_test, y_pred_dropped)
+
+print("\nXGBoost Results Without 'production':")
+print(f"Mean Absolute Error (MAE): {mae_dropped:.2f}")
+print(f"Mean Squared Error (MSE): {mse_dropped:.2f}")
+print(f"Root Mean Squared Error (RMSE): {rmse_dropped:.2f}")
+print(f"R² Score: {r2_dropped:.2f}")
+
+# Save predictions to a CSV file
+results_dropped = pd.DataFrame(X_test_dropped)
+results_dropped["Actual"] = y_test
+results_dropped["Predicted"] = y_pred_dropped
+results_dropped.to_csv("predicted_results_without_production.csv", index=False)
+print("\nPredicted results without 'production' saved to 'predicted_results_without_production.csv'.")
