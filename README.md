@@ -1,4 +1,4 @@
-Canola Price Prediction Project
+**Canola Price Prediction Project**
 Overview
 This project aims to predict the price of Canola using historical data, weather conditions, and inflation rates. The data was collected from various sources, including government websites, and preprocessed to create a unified dataset. Multiple machine learning models were trained and evaluated to predict Canola prices accurately.
 
